@@ -6,11 +6,12 @@ import os
 import openai
 from moviepy.editor import VideoFileClip
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-from constants import openai_key, hf_key
+# from constants import openai_key, hf_key
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_community.llms import OpenAI
 from fpdf import FPDF
+import numpy as np
 import uvicorn
 
 app = FastAPI()
@@ -51,8 +52,25 @@ def convert_video_to_audio(video_data):
         f.write(video_data)
     clip = VideoFileClip("temp_video.mp4")
     clip.audio.write_audiofile("temp_audio.wav")
-    audio_data = open("temp_audio.wav", "rb").read()
+    # audio_data = open("temp_audio.wav", "rb").read()
+    return convert_audio_to_mono("temp_audio.wav")
+
+def convert_audio_to_mono(audio_path):
+    from moviepy.editor import AudioFileClip
+    audio_clip = AudioFileClip(audio_path)
+    audio_data = audio_clip.to_soundarray(fps=16000)
+    if audio_data.ndim == 2:
+        audio_data = np.mean(audio_data, axis=1)
     return audio_data
+
+
+def clean_up_temp_files():
+    try:
+        os.remove("temp_video.mp4")
+        os.remove("temp_audio.wav")
+    except FileNotFoundError:
+        pass  
+
 
 def generate_pdf(transcription_text, summary_text):
     pdf = FPDF()
@@ -75,7 +93,7 @@ async def transcribe_video(video: UploadFile = File(...)):
     audio_data = convert_video_to_audio(video_data)
     
 
-    result = pipe(audio_data, generate_kwargs={'language':'en'})
+    result = pipe(audio_data, generate_kwargs={'language':'en'},return_timestamps=True)
     transcription_text = result["text"]
     timestamps = result['chunks']
     
@@ -111,7 +129,11 @@ async def generate_pdf_file(video: UploadFile = File(...)):
     pdf_path = generate_pdf(transcription_text, summary_text)
     print("PDF generated:", pdf_path)
     
-    return FileResponse(pdf_path, media_type="application/pdf", filename="meeting_summary.pdf")
+    result=FileResponse(pdf_path, media_type="application/pdf", filename="meeting_summary.pdf")
+
+    clean_up_temp_files()
+
+    return result
 
 # if __name__=='__main__':
 #     uvicorn.run(app, host='127.0.0.1', port=8000, reload=True)
