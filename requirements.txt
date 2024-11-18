@@ -5,7 +5,6 @@ whisper
 fastapi
 pydantic    
 torch
-os
 openai
 moviepy
 transformers
