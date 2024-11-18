@@ -17,8 +17,8 @@ import uvicorn
 app = FastAPI()
 # openai.api_key = openai_key
 # os.environ['OPENAI_API_KEY']=openai_key
-openai_key = os.getenv("openai_key")
-hf_key = os.getenv("hf_key")
+openai_key = os.getenv("OPENAI_API_KEY")
+hf_key = os.getenv("HF_API_KEY")
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
