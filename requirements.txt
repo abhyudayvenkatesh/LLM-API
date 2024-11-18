@@ -2,7 +2,7 @@ langchain
 openai
 pydantic
 whisper
-fastapifastapi 
+fastapi
 pydantic    
 torch
 os
